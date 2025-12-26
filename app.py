@@ -1124,7 +1124,22 @@ def main() -> None:
         
         if detected_patterns:
             st.markdown("#### 🔍 Detected Patterns")
-            for pattern in detected_patterns:
+            
+            # Limit to top 10 patterns, sorted by severity and change magnitude
+            def pattern_sort_key(p):
+                severity_rank = {"high": 0, "medium": 1, "low": 2}.get(p.get("severity", "low"), 2)
+                try:
+                    change_val = abs(float(str(p.get("metric_change", "0")).replace("%", "").replace("+", "")))
+                except:
+                    change_val = 0
+                return (severity_rank, -change_val)
+            
+            sorted_patterns = sorted(detected_patterns, key=pattern_sort_key)
+            top_patterns = sorted_patterns[:10]
+            remaining_patterns = sorted_patterns[10:]
+            
+            # Display top patterns
+            for pattern in top_patterns:
                 severity = pattern.get("severity", "medium")
                 severity_icon = "🔴" if severity == "high" else "🟡" if severity == "medium" else "🟢"
                 pattern_name = pattern.get("pattern", "Unknown pattern")
@@ -1138,11 +1153,26 @@ def main() -> None:
 - 💡 Action: _{rec}_
 ---
 """)
+            
+            # Show remaining patterns in expander if any
+            if remaining_patterns:
+                with st.expander(f"📋 Show {len(remaining_patterns)} more patterns...", expanded=False):
+                    for pattern in remaining_patterns:
+                        severity = pattern.get("severity", "medium")
+                        severity_icon = "🔴" if severity == "high" else "🟡" if severity == "medium" else "🟢"
+                        pattern_name = pattern.get("pattern", "Unknown pattern")
+                        period = pattern.get("period", "")
+                        change = pattern.get("metric_change", "")
+                        rec = pattern.get("recommendation", "")
+                        st.markdown(f"**{severity_icon} {pattern_name}** ({period}) - Change: `{change}`")
         
-        # Display segment anomalies
+        # Display segment anomalies (limit to top 5)
         if segment_anomalies:
             st.markdown("#### ⚠️ Segment Anomalies")
-            for anomaly in segment_anomalies:
+            top_anomalies = segment_anomalies[:5]
+            remaining_anomalies = segment_anomalies[5:]
+            
+            for anomaly in top_anomalies:
                 segment = anomaly.get("segment", "Unknown")
                 issue = anomaly.get("issue", "")
                 gap = anomaly.get("gap", "")
@@ -1150,6 +1180,15 @@ def main() -> None:
                 st.warning(f"**{segment}**: {issue} ({gap})")
                 if rec:
                     st.caption(f"💡 Recommendation: {rec}")
+            
+            # Show remaining anomalies in expander if any
+            if remaining_anomalies:
+                with st.expander(f"📋 Show {len(remaining_anomalies)} more anomalies...", expanded=False):
+                    for anomaly in remaining_anomalies:
+                        segment = anomaly.get("segment", "Unknown")
+                        issue = anomaly.get("issue", "")
+                        gap = anomaly.get("gap", "")
+                        st.caption(f"⚠️ **{segment}**: {issue} ({gap})")
 
         # Standard insights
         st.subheader("📋 Key Insights")
