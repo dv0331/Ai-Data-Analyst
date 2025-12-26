@@ -15,6 +15,26 @@ import plotly.express as px
 import streamlit as st
 from openai import OpenAI
 
+
+# ------------------------------
+# Streamlit Cloud Secrets Support
+# ------------------------------
+def load_secrets():
+    """Load API keys from Streamlit secrets or environment variables."""
+    # Try Streamlit secrets first (for Streamlit Cloud deployment)
+    try:
+        if hasattr(st, 'secrets'):
+            if 'OPENAI_API_KEY' in st.secrets:
+                os.environ['OPENAI_API_KEY'] = st.secrets['OPENAI_API_KEY']
+            if 'E2B_API_KEY' in st.secrets:
+                os.environ['E2B_API_KEY'] = st.secrets['E2B_API_KEY']
+    except Exception:
+        pass  # Secrets not available, fall back to env vars
+
+
+# Load secrets at module import
+load_secrets()
+
 try:
     from sklearn.ensemble import IsolationForest
 except Exception:  # pragma: no cover - optional dependency
