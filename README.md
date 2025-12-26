@@ -40,8 +40,8 @@ An intelligent AI-powered data analysis agent that automatically reads structure
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/YOUR_USERNAME/data-analyst-agent.git
-cd data-analyst-agent
+git clone https://github.com/dv0331/Ai-Data-Analyst.git
+cd Ai-Data-Analyst
 ```
 
 2. **Create virtual environment**
