@@ -22,6 +22,14 @@ An intelligent AI-powered data analysis agent that automatically reads structure
 - **💡 Deep Pattern Detection**: Identifies segment-level anomalies and cross-dimensional patterns
 - **📝 Natural Language Insights**: Plain English explanations of complex data patterns
 
+### Business Intelligence Output
+- **📋 Executive Business Summary**: Cohesive 2-3 sentence narrative summarizing the overall data story
+- **🎯 Prioritized Next Actions**: 2-3 actionable recommendations with:
+  - Priority level (Urgent/High/Medium)
+  - Specific action to take
+  - Expected business impact
+  - Responsible owner/team
+
 ### Multiple Analysis Modes
 | Mode | Description |
 |------|-------------|
@@ -108,13 +116,30 @@ Adjust in the Streamlit sidebar:
 
 ## 📊 Sample Output
 
-### Insights Generated
+### Executive Business Summary
+```
+Overall business performance is strong with $4.1M total revenue and a healthy +3% WoW 
+growth trend. Region A leads performance while Region B shows concerning -28% decline 
+requiring immediate attention. The seasonal uptick in Q4 presents opportunity for 
+targeted promotional activities.
+```
+
+### Key Insights Generated
 ```
 ✅ Total revenue: $4,103,231
 ✅ Latest WoW change: +3.01%
 ✅ Trend direction: Increasing (slope: +6,289/week)
 ✅ Anomaly detected: Week of Dec 15 (Region C -28%)
 ```
+
+### Recommended Next Actions
+The system generates prioritized, actionable recommendations:
+
+| Priority | Action | Expected Impact | Owner |
+|----------|--------|-----------------|-------|
+| 🔴 URGENT | Investigate Region B's 28% revenue decline | Potential $50K recovery | Sales Team |
+| 🟡 HIGH | Replicate Region A's campaign in underperforming regions | 15% lift in target regions | Marketing |
+| 🟢 MEDIUM | Develop Q1 promotional calendar based on patterns | Better resource allocation | Planning |
 
 ### AI Chart Analysis
 The Vision LLM provides detailed analysis of each chart:
@@ -131,6 +156,11 @@ The Vision LLM provides detailed analysis of each chart:
 | E2B | Secure sandbox for code execution | [e2b.dev](https://e2b.dev) |
 
 ## 🏗️ Architecture
+
+![Architecture Diagram](Architecture.svg)
+
+<details>
+<summary>View Text-based Architecture</summary>
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
@@ -152,6 +182,7 @@ The Vision LLM provides detailed analysis of each chart:
                            │     UI      │
                            └─────────────┘
 ```
+</details>
 
 ## 📝 Design Approach
 

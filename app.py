@@ -1092,6 +1092,26 @@ def main() -> None:
         recs = data.get("recommendations", [])
 
         # ═══════════════════════════════════════════════════════════════
+        # BUSINESS SUMMARY (Executive Overview)
+        # ═══════════════════════════════════════════════════════════════
+        business_summary = data.get("business_summary", "")
+        if business_summary:
+            st.markdown("---")
+            st.subheader("📋 Executive Business Summary")
+            st.markdown(f"""
+<div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); 
+            padding: 20px; 
+            border-radius: 10px; 
+            border-left: 4px solid #4ade80;
+            margin-bottom: 20px;">
+    <p style="font-size: 1.1rem; line-height: 1.6; color: #e2e8f0; margin: 0;">
+        {business_summary}
+    </p>
+</div>
+""", unsafe_allow_html=True)
+            st.markdown("---")
+
+        # ═══════════════════════════════════════════════════════════════
         # PHASE 1: DATA OVERVIEW
         # ═══════════════════════════════════════════════════════════════
         overview = data.get("overview", {})
@@ -1330,8 +1350,55 @@ def main() -> None:
         next_actions = data.get("next_actions", [])
         if next_actions:
             st.subheader("🎯 Recommended Next Actions")
-            for i, action in enumerate(next_actions, 1):
-                st.success(f"**{i}.** {action}")
+            st.markdown("*Prioritized actions based on data analysis:*")
+            
+            for action_item in next_actions:
+                if isinstance(action_item, dict):
+                    priority = action_item.get("priority", "")
+                    action = action_item.get("action", "")
+                    impact = action_item.get("impact", "")
+                    owner = action_item.get("owner", "")
+                    
+                    # Priority-based styling
+                    if priority == 1:
+                        priority_icon = "🔴"
+                        priority_label = "URGENT"
+                        border_color = "#ef4444"
+                    elif priority == 2:
+                        priority_icon = "🟡"
+                        priority_label = "HIGH"
+                        border_color = "#f59e0b"
+                    else:
+                        priority_icon = "🟢"
+                        priority_label = "MEDIUM"
+                        border_color = "#22c55e"
+                    
+                    st.markdown(f"""
+<div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); 
+            padding: 15px 20px; 
+            border-radius: 8px; 
+            border-left: 4px solid {border_color};
+            margin-bottom: 12px;">
+    <div style="display: flex; align-items: center; margin-bottom: 8px;">
+        <span style="font-size: 1.2rem; margin-right: 8px;">{priority_icon}</span>
+        <span style="background: {border_color}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">{priority_label}</span>
+        {f'<span style="color: #94a3b8; margin-left: 12px; font-size: 0.85rem;">👤 {owner}</span>' if owner else ''}
+    </div>
+    <p style="font-size: 1rem; color: #e2e8f0; margin: 0 0 8px 0; font-weight: 500;">
+        {action}
+    </p>
+    {f'<p style="font-size: 0.9rem; color: #4ade80; margin: 0;"><strong>📈 Expected Impact:</strong> {impact}</p>' if impact else ''}
+</div>
+""", unsafe_allow_html=True)
+                else:
+                    # Fallback for string format
+                    st.success(f"➡️ {action_item}")
+        else:
+            # Fallback: show recommendations as next actions if next_actions is empty
+            if recs:
+                st.subheader("🎯 Recommended Next Actions")
+                for i, r in enumerate(recs, 1):
+                    st.success(f"**{i}.** {r}")
 
         with st.expander("Artifacts (debug)"):
             cb = result.get("chart_bytes")
