@@ -1338,34 +1338,79 @@ def main() -> None:
         st.session_state["agent_last_url"] = ""
     if "agent_last_upload_name" not in st.session_state:
         st.session_state["agent_last_upload_name"] = ""
-    if "agent_result" not in st.session_state:
+    
+    # ═══════════════════════════════════════════════════════════════
+    # RESULTS CACHE - Store results per analysis type
+    # ═══════════════════════════════════════════════════════════════
+    if "agent_results_cache" not in st.session_state:
+        st.session_state["agent_results_cache"] = {}  # {prompt_type: {"result": ..., "error": ...}}
+    
+    # Legacy support - migrate old single result to cache
+    if "agent_result" in st.session_state and st.session_state["agent_result"] is not None:
+        old_type = st.session_state.get("agent_last_prompt_type", "combined")
+        if old_type not in st.session_state["agent_results_cache"]:
+            st.session_state["agent_results_cache"][old_type] = {
+                "result": st.session_state["agent_result"],
+                "error": st.session_state.get("agent_error")
+            }
         st.session_state["agent_result"] = None
-    if "agent_error" not in st.session_state:
         st.session_state["agent_error"] = None
+    
+    if "agent_last_prompt_type" not in st.session_state:
+        st.session_state["agent_last_prompt_type"] = "combined"
 
     auto_run = st.checkbox("Auto-run when input changes", value=st.session_state["agent_auto_run"], key="agent_autorun_top")
     st.session_state["agent_auto_run"] = auto_run
 
     changed_url = bool(dataset_url and dataset_url != st.session_state["agent_last_url"])
     changed_upload = bool(uploaded_remote and uploaded_remote.name != st.session_state["agent_last_upload_name"])
+    
+    # Get current prompt type
+    current_prompt_type = st.session_state.get("agent_prompt_type", "combined")
+    
+    # Check if we have cached results for current analysis type
+    cached_entry = st.session_state["agent_results_cache"].get(current_prompt_type)
+    has_cached_result = cached_entry is not None and cached_entry.get("result") is not None
 
     def run_and_store():
         prompt_type = st.session_state.get("agent_prompt_type", "combined")
-        with st.spinner("Running agent in sandbox..."):
+        with st.spinner(f"Running {prompt_options.get(prompt_type, 'analysis')}..."):
             result, err = run_agent_in_sandbox(dataset_url, uploaded_remote, prompt_type)
-        st.session_state["agent_result"] = result
-        st.session_state["agent_error"] = err
+        
+        # Store in cache by prompt type
+        st.session_state["agent_results_cache"][prompt_type] = {
+            "result": result,
+            "error": err
+        }
+        st.session_state["agent_last_prompt_type"] = prompt_type
         st.session_state["agent_last_url"] = dataset_url or st.session_state["agent_last_url"]
         st.session_state["agent_last_upload_name"] = uploaded_remote.name if uploaded_remote else st.session_state["agent_last_upload_name"]
 
-    if auto_run and (changed_url or changed_upload):
-        run_and_store()
+    # Clear cache if dataset changes
+    if changed_url or changed_upload:
+        st.session_state["agent_results_cache"] = {}
+        if auto_run:
+            run_and_store()
 
-    if st.button("Run Agent in E2B Sandbox", type="primary", key="agent_run_top"):
-        run_and_store()
+    # Show cached results indicator
+    if has_cached_result:
+        st.success(f"✅ Showing cached results for **{prompt_options.get(current_prompt_type, current_prompt_type)}**")
+        col_run, col_clear = st.columns(2)
+        with col_run:
+            if st.button("🔄 Re-run Analysis", type="primary", key="agent_run_top"):
+                run_and_store()
+        with col_clear:
+            if st.button("🗑️ Clear All Cache", key="agent_clear_cache"):
+                st.session_state["agent_results_cache"] = {}
+                st.rerun()
+    else:
+        if st.button("▶️ Run Agent in E2B Sandbox", type="primary", key="agent_run_top"):
+            run_and_store()
 
-    result = st.session_state.get("agent_result")
-    err = st.session_state.get("agent_error")
+    # Get result from cache for current prompt type
+    cached_entry = st.session_state["agent_results_cache"].get(current_prompt_type, {})
+    result = cached_entry.get("result")
+    err = cached_entry.get("error")
 
     if err:
         st.error(err)
