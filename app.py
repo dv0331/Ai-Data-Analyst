@@ -1578,18 +1578,72 @@ def main() -> None:
 
         # Standard insights
         st.subheader("📋 Key Insights")
-        if insights:
-            for t in insights:
+        
+        # Fallback: If insights is empty but we have detected_patterns or overview, generate insights
+        display_insights = insights.copy() if insights else []
+        
+        if not display_insights:
+            # Try to build insights from overview data
+            overview = data.get("overview", {})
+            if overview:
+                main_metric = overview.get("main_metric", "metric")
+                total_val = overview.get("total_value")
+                wow = overview.get("latest_wow_change")
+                trend = overview.get("trend_direction", "")
+                date_range = overview.get("date_range", "")
+                
+                if total_val is not None:
+                    display_insights.append(f"Total {main_metric}: ${total_val:,.0f}" if isinstance(total_val, (int, float)) else f"Total {main_metric}: {total_val}")
+                if wow is not None:
+                    direction = "increased" if wow >= 0 else "decreased"
+                    display_insights.append(f"{main_metric.title()} {direction} {abs(wow):.2f}% week-over-week")
+                if trend:
+                    display_insights.append(f"Overall trend: {trend.title()}")
+                if date_range:
+                    display_insights.append(f"Analysis period: {date_range}")
+            
+            # Also include top patterns as insights if available
+            patterns = data.get("detected_patterns", [])
+            for p in patterns[:3]:  # Add top 3 patterns
+                if isinstance(p, dict):
+                    pattern_text = p.get("pattern", str(p))
+                elif isinstance(p, str):
+                    pattern_text = p
+                else:
+                    pattern_text = str(p)
+                if pattern_text and pattern_text not in display_insights:
+                    display_insights.append(pattern_text)
+        
+        if display_insights:
+            for t in display_insights:
                 st.info(f"{t}")
         else:
             st.info("No insights returned.")
 
         st.subheader("🎯 Recommendations")
-        if recs:
-            for r in recs:
-                st.success(f"➡️ {r}")
-        else:
-            st.write("- Establish a weekly monitoring cadence with alerts.")
+        
+        # Fallback: Build recommendations from patterns if empty
+        display_recs = recs.copy() if recs else []
+        
+        if not display_recs:
+            # Generate recommendations based on patterns and anomalies
+            patterns = data.get("detected_patterns", [])
+            anomalies = data.get("segment_anomalies", [])
+            
+            if patterns or anomalies:
+                # Add generic recommendations based on data
+                if any("decline" in str(p).lower() or "drop" in str(p).lower() or "decrease" in str(p).lower() for p in patterns):
+                    display_recs.append("Investigate drivers for declining segments; review pricing, promotions, and inventory constraints.")
+                if any("increase" in str(p).lower() or "growth" in str(p).lower() or "spike" in str(p).lower() for p in patterns):
+                    display_recs.append("Double down on growth areas; expand stock, amplify campaigns, or replicate successful playbooks.")
+                if anomalies:
+                    display_recs.append("Review anomalous segments for root cause analysis and corrective actions.")
+            
+            if not display_recs:
+                display_recs.append("Establish a weekly monitoring cadence with alerts for significant changes.")
+        
+        for r in display_recs:
+            st.success(f"➡️ {r}")
 
         st.subheader("📊 Visualizations")
         chart_explanations = data.get("chart_explanations", {})
