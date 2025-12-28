@@ -492,6 +492,289 @@ from lib.tools_schemas import execute_code_schema, execute_bash_schema  # type: 
 from lib.coding_agent import coding_agent, log  # type: ignore
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# CHAT WITH DATA - Conversational AI for follow-up questions and visualizations
+# ══════════════════════════════════════════════════════════════════════════════
+
+def initialize_chat_session():
+    """Initialize chat session state with memory."""
+    if "chat_messages" not in st.session_state:
+        st.session_state.chat_messages = []
+    if "chat_context" not in st.session_state:
+        st.session_state.chat_context = {}
+    if "chat_visualizations" not in st.session_state:
+        st.session_state.chat_visualizations = []
+    if "chat_sandbox" not in st.session_state:
+        st.session_state.chat_sandbox = None
+
+
+def get_data_context_summary(data: dict, df_summary: Optional[str] = None) -> str:
+    """Build context summary from analysis results for chat."""
+    context_parts = []
+    
+    # Business summary
+    if data.get("business_summary"):
+        context_parts.append(f"Business Summary: {data['business_summary']}")
+    
+    # Overview metrics
+    overview = data.get("overview", {})
+    if overview:
+        context_parts.append(f"Main Metric: {overview.get('main_metric', 'unknown')}")
+        context_parts.append(f"Total Value: {overview.get('total_value', 'N/A')}")
+        context_parts.append(f"WoW Change: {overview.get('latest_wow_change', 'N/A')}%")
+        context_parts.append(f"Trend: {overview.get('trend_direction', 'N/A')}")
+        context_parts.append(f"Date Range: {overview.get('date_range', 'N/A')}")
+    
+    # Key insights
+    insights = data.get("insights", [])
+    if insights:
+        context_parts.append(f"Key Insights: {'; '.join(insights[:5])}")
+    
+    # Patterns detected
+    patterns = data.get("detected_patterns", [])
+    if patterns:
+        pattern_strs = [str(p) if isinstance(p, str) else p.get("pattern", str(p)) for p in patterns[:5]]
+        context_parts.append(f"Detected Patterns: {'; '.join(pattern_strs)}")
+    
+    # Recommendations
+    recs = data.get("recommendations", [])
+    if recs:
+        context_parts.append(f"Recommendations: {'; '.join(recs[:3])}")
+    
+    # DataFrame summary if available
+    if df_summary:
+        context_parts.append(f"Data Shape: {df_summary}")
+    
+    return "\n".join(context_parts)
+
+
+def process_chat_query(query: str, data_context: str, dataset_url: Optional[str], 
+                       uploaded_file, sbx) -> Tuple[str, Optional[bytes], Optional[str]]:
+    """Process a chat query and return response with optional visualization."""
+    load_env()
+    client = OpenAI()
+    
+    # Build the chat system prompt
+    chat_system = f"""You are an AI Data Analyst assistant. You have access to the analysis results and can:
+1. Answer questions about the data, insights, and patterns
+2. Generate new visualizations on request
+3. Provide deeper analysis on specific segments or metrics
+4. Explain patterns and recommend actions
+
+## Current Analysis Context:
+{data_context}
+
+## Your Capabilities:
+- Answer questions about the data using the context above
+- If the user asks for a visualization, write Python code to generate it
+- If you need to run code, output it in a ```python code block
+- Be specific with numbers and insights from the context
+- When asked to visualize, always save the chart as 'chat_chart.png' using matplotlib with Agg backend
+
+## Response Format:
+- For questions: Provide clear, concise answers based on the analysis
+- For visualizations: Generate Python code and explain what it shows
+- Always be helpful and data-driven
+"""
+
+    # Get conversation history for context
+    history = st.session_state.get("chat_messages", [])[-10:]  # Last 10 messages for context
+    
+    messages = [{"role": "system", "content": chat_system}]
+    
+    # Add conversation history
+    for msg in history:
+        if msg["role"] in ["user", "assistant"]:
+            messages.append({"role": msg["role"], "content": msg["content"]})
+    
+    # Add current query
+    messages.append({"role": "user", "content": query})
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            max_tokens=2000,
+            temperature=0.7
+        )
+        
+        assistant_response = response.choices[0].message.content
+        
+        # Check if response contains Python code for visualization
+        chart_bytes = None
+        code_output = None
+        
+        if "```python" in assistant_response and sbx is not None:
+            # Extract Python code
+            import re
+            code_match = re.search(r'```python\n(.*?)```', assistant_response, re.DOTALL)
+            if code_match:
+                code = code_match.group(1)
+                
+                # Ensure matplotlib uses Agg backend
+                if "matplotlib" in code and "Agg" not in code:
+                    code = "import matplotlib\nmatplotlib.use('Agg')\n" + code
+                
+                # Add dataset loading if needed
+                if dataset_url and "read_csv" not in code and "read_excel" not in code:
+                    if dataset_url.lower().endswith('.csv'):
+                        code = f"import pandas as pd\ndf = pd.read_csv('{dataset_url}')\n" + code
+                    else:
+                        code = f"import pandas as pd\ndf = pd.read_excel('{dataset_url}', engine='openpyxl')\n" + code
+                
+                try:
+                    # Execute code in sandbox
+                    exec_result = sbx.run_code(code, language="python")
+                    if exec_result and exec_result.logs:
+                        code_output = "\n".join(exec_result.logs.stdout) if exec_result.logs.stdout else ""
+                    
+                    # Try to read generated chart
+                    try:
+                        chart_content = sbx.files.read("chat_chart.png")
+                        if isinstance(chart_content, (bytes, bytearray)):
+                            chart_bytes = bytes(chart_content)
+                        elif isinstance(chart_content, str):
+                            # Try base64 decode
+                            chart_bytes = base64.b64decode(chart_content)
+                    except Exception:
+                        # Try reading via code execution
+                        read_code = """
+import base64
+import os
+if os.path.exists('chat_chart.png'):
+    with open('chat_chart.png', 'rb') as f:
+        print(base64.b64encode(f.read()).decode('ascii'))
+"""
+                        read_result = sbx.run_code(read_code)
+                        if read_result and read_result.logs and read_result.logs.stdout:
+                            b64_str = "".join(read_result.logs.stdout).strip()
+                            if b64_str:
+                                chart_bytes = base64.b64decode(b64_str)
+                except Exception as e:
+                    code_output = f"Code execution error: {str(e)}"
+        
+        return assistant_response, chart_bytes, code_output
+        
+    except Exception as e:
+        return f"Error processing your question: {str(e)}", None, None
+
+
+def render_chat_interface(data: dict, dataset_url: Optional[str], uploaded_file, sbx):
+    """Render the chat interface in sidebar or main area."""
+    
+    # Initialize session
+    initialize_chat_session()
+    
+    # Store data context
+    st.session_state.chat_context = data
+    st.session_state.chat_sandbox = sbx
+    
+    # Build context summary
+    data_context = get_data_context_summary(data)
+    
+    st.markdown("---")
+    st.subheader("💬 Chat with Your Data")
+    st.caption("Ask follow-up questions, request visualizations, or explore patterns")
+    
+    # Example questions
+    with st.expander("💡 Example Questions", expanded=False):
+        example_questions = [
+            "Which region performed best last quarter?",
+            "Show me a pie chart of revenue by category",
+            "What's causing the decline in Region B?",
+            "Create a comparison chart of top 5 vs bottom 5 segments",
+            "Explain the anomaly detected on Dec 15",
+            "What actions should I prioritize this week?",
+            "Show monthly trend instead of weekly",
+            "Which product category has the highest growth rate?"
+        ]
+        for q in example_questions:
+            if st.button(f"📝 {q}", key=f"example_{hash(q)}", use_container_width=True):
+                st.session_state.pending_question = q
+    
+    # Display chat history
+    chat_container = st.container()
+    with chat_container:
+        for i, message in enumerate(st.session_state.chat_messages):
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+                # Display visualization if present
+                if message.get("visualization"):
+                    try:
+                        st.image(message["visualization"], caption="Generated Visualization", use_container_width=True)
+                    except Exception:
+                        pass
+    
+    # Chat input
+    user_input = st.chat_input("Ask a question about your data...")
+    
+    # Check for pending question from examples
+    if hasattr(st.session_state, 'pending_question') and st.session_state.pending_question:
+        user_input = st.session_state.pending_question
+        st.session_state.pending_question = None
+    
+    if user_input:
+        # Add user message
+        st.session_state.chat_messages.append({"role": "user", "content": user_input})
+        
+        # Display user message
+        with st.chat_message("user"):
+            st.markdown(user_input)
+        
+        # Get AI response
+        with st.chat_message("assistant"):
+            with st.spinner("Analyzing..."):
+                response, chart_bytes, code_output = process_chat_query(
+                    user_input, data_context, dataset_url, uploaded_file, sbx
+                )
+                
+                st.markdown(response)
+                
+                # Store message with visualization if present
+                msg_entry = {"role": "assistant", "content": response}
+                
+                if chart_bytes and len(chart_bytes) > 0:
+                    try:
+                        st.image(chart_bytes, caption="Generated Visualization", use_container_width=True)
+                        msg_entry["visualization"] = chart_bytes
+                        
+                        # Add download button
+                        st.download_button(
+                            "📥 Download Chart",
+                            data=chart_bytes,
+                            file_name="chat_visualization.png",
+                            mime="image/png"
+                        )
+                    except Exception as e:
+                        st.warning(f"Could not display chart: {e}")
+                
+                if code_output:
+                    with st.expander("📋 Code Output"):
+                        st.code(code_output)
+                
+                st.session_state.chat_messages.append(msg_entry)
+    
+    # Clear chat button
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🗑️ Clear Chat", use_container_width=True):
+            st.session_state.chat_messages = []
+            st.rerun()
+    with col2:
+        if st.button("📤 Export Chat", use_container_width=True):
+            chat_export = "\n\n".join([
+                f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
+                for m in st.session_state.chat_messages
+            ])
+            st.download_button(
+                "Download",
+                data=chat_export,
+                file_name="chat_history.txt",
+                mime="text/plain",
+                key="download_chat"
+            )
+
+
 def prepare_sandbox_for_analysis(sbx) -> None:
     # Install required libs inside sandbox (idempotent and quiet)
     try:
@@ -1098,17 +1381,9 @@ def main() -> None:
         if business_summary:
             st.markdown("---")
             st.subheader("📋 Executive Business Summary")
-            st.markdown(f"""
-<div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); 
-            padding: 20px; 
-            border-radius: 10px; 
-            border-left: 4px solid #4ade80;
-            margin-bottom: 20px;">
-    <p style="font-size: 1.1rem; line-height: 1.6; color: #e2e8f0; margin: 0;">
-        {business_summary}
-    </p>
-</div>
-""", unsafe_allow_html=True)
+            # Use native Streamlit container for reliable rendering
+            with st.container():
+                st.info(f"📊 **Executive Overview**\n\n{business_summary}")
             st.markdown("---")
 
         # ═══════════════════════════════════════════════════════════════
@@ -1354,42 +1629,34 @@ def main() -> None:
             
             for action_item in next_actions:
                 if isinstance(action_item, dict):
-                    priority = action_item.get("priority", "")
+                    priority = action_item.get("priority", 3)
                     action = action_item.get("action", "")
                     impact = action_item.get("impact", "")
                     owner = action_item.get("owner", "")
                     
-                    # Priority-based styling
+                    # Priority-based styling using Streamlit native components
                     if priority == 1:
                         priority_icon = "🔴"
                         priority_label = "URGENT"
-                        border_color = "#ef4444"
                     elif priority == 2:
                         priority_icon = "🟡"
                         priority_label = "HIGH"
-                        border_color = "#f59e0b"
                     else:
                         priority_icon = "🟢"
                         priority_label = "MEDIUM"
-                        border_color = "#22c55e"
                     
-                    st.markdown(f"""
-<div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); 
-            padding: 15px 20px; 
-            border-radius: 8px; 
-            border-left: 4px solid {border_color};
-            margin-bottom: 12px;">
-    <div style="display: flex; align-items: center; margin-bottom: 8px;">
-        <span style="font-size: 1.2rem; margin-right: 8px;">{priority_icon}</span>
-        <span style="background: {border_color}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">{priority_label}</span>
-        {f'<span style="color: #94a3b8; margin-left: 12px; font-size: 0.85rem;">👤 {owner}</span>' if owner else ''}
-    </div>
-    <p style="font-size: 1rem; color: #e2e8f0; margin: 0 0 8px 0; font-weight: 500;">
-        {action}
-    </p>
-    {f'<p style="font-size: 0.9rem; color: #4ade80; margin: 0;"><strong>📈 Expected Impact:</strong> {impact}</p>' if impact else ''}
-</div>
-""", unsafe_allow_html=True)
+                    # Use native Streamlit components for reliable rendering
+                    with st.container():
+                        col_icon, col_content = st.columns([0.08, 0.92])
+                        with col_icon:
+                            st.markdown(f"### {priority_icon}")
+                        with col_content:
+                            owner_text = f" • 👤 {owner}" if owner else ""
+                            st.markdown(f"**{priority_label}**{owner_text}")
+                            st.markdown(f"{action}")
+                            if impact:
+                                st.success(f"📈 **Expected Impact:** {impact}")
+                        st.divider()
                 else:
                     # Fallback for string format
                     st.success(f"➡️ {action_item}")
@@ -1434,6 +1701,18 @@ def main() -> None:
             usage = result.get("usage")
             if usage is not None:
                 st.caption(f"Tokens used: {usage}")
+
+        # ═══════════════════════════════════════════════════════════════
+        # CHAT WITH YOUR DATA - Interactive Q&A and Visualization
+        # ═══════════════════════════════════════════════════════════════
+        # Get or create sandbox for chat
+        try:
+            chat_sbx = create_sandbox()
+            prepare_sandbox_for_analysis(chat_sbx)
+        except Exception:
+            chat_sbx = None
+        
+        render_chat_interface(data, dataset_url, uploaded_remote, chat_sbx)
 
     # Return early to keep a single, remote-only UI
     return

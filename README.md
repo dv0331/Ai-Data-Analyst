@@ -30,6 +30,13 @@ An intelligent AI-powered data analysis agent that automatically reads structure
   - Expected business impact
   - Responsible owner/team
 
+### 💬 Interactive Chat with Your Data
+- **Conversational AI**: Ask follow-up questions in natural language
+- **Dynamic Visualizations**: Request custom charts on-the-fly
+- **Session Memory**: Maintains conversation context across queries
+- **Example Questions**: Pre-built prompts to get started quickly
+- **Export Chat**: Download your analysis conversation
+
 ### Multiple Analysis Modes
 | Mode | Description |
 |------|-------------|
@@ -147,6 +154,20 @@ The Vision LLM provides detailed analysis of each chart:
 - **Anomaly explanations** with business context
 - **Segment comparisons** and performance gaps
 - **Actionable recommendations** based on visual patterns
+
+### 💬 Chat with Your Data Examples
+```
+User: "Which region performed best last quarter?"
+AI: "Based on the analysis, Region A leads with $1.2M revenue and +15% WoW growth..."
+
+User: "Show me a pie chart of revenue by category"
+AI: [Generates and displays pie chart visualization]
+
+User: "What actions should I prioritize this week?"
+AI: "Based on the detected patterns, here are your priorities:
+     1. 🔴 URGENT: Address Region B's 28% decline...
+     2. 🟡 HIGH: Replicate Region A's campaign..."
+```
 
 ## 🔧 API Keys Required
 
