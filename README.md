@@ -11,23 +11,92 @@ An intelligent AI-powered data analysis agent that automatically reads structure
 
 ## 🎬 Demo & Presentation
 
-### 📹 Watch the Demo
+### 📹 Watch the Full Demo Video
 
-| Resource | Description | Link |
-|----------|-------------|------|
-| **🎥 Loom Video** | Full walkthrough of the AI Data Analyst | [▶️ Watch on Loom](https://www.loom.com/share/f8beea7a15a94da2a611ad4199c6ee94) |
-| **📺 Local Demo** | Three-Phase Analysis screencast | [Demo Video of the Three Phase Analysis.webm](./Demo%20Video%20of%20the%20Three%20Phase%20Analysis.webm) |
-| **📊 Presentation** | 5-Slide Summary Deck | [Data_Analyst_Presentation_20251228_223319.pptx](./Data_Analyst_Presentation_20251228_223319.pptx) |
+<div align="center">
 
-### 📄 Sample Outputs
+[![Watch the Demo on Loom](https://cdn.loom.com/sessions/thumbnails/f8beea7a15a94da2a611ad4199c6ee94-00001.jpg)](https://www.loom.com/share/f8beea7a15a94da2a611ad4199c6ee94)
 
-See the `/Samples/` folder for PDF examples of each analysis mode:
+**👆 Click the image above to watch the full walkthrough on Loom**
 
-| Sample | Analysis Mode |
-|--------|---------------|
-| [Basic Data Analysis.pdf](./Samples/Basic%20Data%20Analysis.pdf) | 📊 Basic trends, WoW changes, anomalies |
-| [Deep Pattern Analysis.pdf](./Samples/Deep%20Pattern%20Analysis.pdf) | 🔬 Segment-level cross-dimensional insights |
-| [TwoPhase Analysis Basic and Deep Pattern Analysis.pdf](./Samples/TwoPhase%20Analysis%20Basic%20and%20Deep%20Pattern%20Analysis.pdf) | 🔄 Combined Two-Phase Analysis (Recommended) |
+[🎥 **Watch Full Demo on Loom**](https://www.loom.com/share/f8beea7a15a94da2a611ad4199c6ee94) | [📺 **Download Local Demo (.webm)**](./Demo%20Video%20of%20the%20Three%20Phase%20Analysis.webm) | [📊 **Download Presentation (.pptx)**](./Data_Analyst_Presentation_20251228_223319.pptx)
+
+</div>
+
+---
+
+### 📊 Presentation Slides Preview
+
+<div align="center">
+
+| Slide 1: Problem & Objective | Slide 2: Architecture | Slide 3: Implementation |
+|:---:|:---:|:---:|
+| Problem understanding and solution approach | System design and data flow | Technical decisions and AI logic |
+
+| Slide 4: Challenges & Learnings | Slide 5: Demo Summary |
+|:---:|:---:|
+| Key obstacles and solutions | Deliverables and next steps |
+
+[📥 **Download Full Presentation (PPTX)**](./Data_Analyst_Presentation_20251228_223319.pptx)
+
+</div>
+
+---
+
+### 📄 Sample Analysis Outputs
+
+Click on each sample to view the full PDF:
+
+<table>
+<tr>
+<td width="33%" align="center">
+
+**📊 Basic Data Analysis**
+
+[![Basic Analysis](https://img.shields.io/badge/PDF-Basic%20Analysis-red?style=for-the-badge&logo=adobe-acrobat-reader)](./Samples/Basic%20Data%20Analysis.pdf)
+
+<sub>Trends • WoW Changes • Anomalies</sub>
+
+[📄 View PDF](./Samples/Basic%20Data%20Analysis.pdf)
+
+</td>
+<td width="33%" align="center">
+
+**🔬 Deep Pattern Analysis**
+
+[![Deep Analysis](https://img.shields.io/badge/PDF-Deep%20Pattern-blue?style=for-the-badge&logo=adobe-acrobat-reader)](./Samples/Deep%20Pattern%20Analysis.pdf)
+
+<sub>Segment-level • Cross-dimensional</sub>
+
+[📄 View PDF](./Samples/Deep%20Pattern%20Analysis.pdf)
+
+</td>
+<td width="33%" align="center">
+
+**🔄 Two-Phase Analysis** ⭐
+
+[![Two-Phase](https://img.shields.io/badge/PDF-Two--Phase-green?style=for-the-badge&logo=adobe-acrobat-reader)](./Samples/TwoPhase%20Analysis%20Basic%20and%20Deep%20Pattern%20Analysis.pdf)
+
+<sub>Combined • Recommended</sub>
+
+[📄 View PDF](./Samples/TwoPhase%20Analysis%20Basic%20and%20Deep%20Pattern%20Analysis.pdf)
+
+</td>
+</tr>
+</table>
+
+<details>
+<summary><b>📋 What's in each sample output?</b></summary>
+
+<br>
+
+| Sample | Contents |
+|--------|----------|
+| **Basic Data Analysis** | Executive summary, metrics overview, trend chart, group comparison, key insights, recommendations |
+| **Deep Pattern Analysis** | All basic + segment-level patterns, cross-dimensional heatmap, anomaly details with z-scores |
+| **Two-Phase Analysis** | Complete analysis combining both phases, prioritized next actions with owners and impact |
+
+</details>
 
 ---
 
