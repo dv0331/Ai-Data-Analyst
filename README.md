@@ -7,6 +7,30 @@ An intelligent AI-powered data analysis agent that automatically reads structure
 ![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4-green.svg)
 ![E2B](https://img.shields.io/badge/E2B-Sandbox-orange.svg)
 
+---
+
+## 🎬 Demo & Presentation
+
+### 📹 Watch the Demo
+
+| Resource | Description | Link |
+|----------|-------------|------|
+| **🎥 Loom Video** | Full walkthrough of the AI Data Analyst | [▶️ Watch on Loom](https://www.loom.com/share/f8beea7a15a94da2a611ad4199c6ee94) |
+| **📺 Local Demo** | Three-Phase Analysis screencast | [Demo Video of the Three Phase Analysis.webm](./Demo%20Video%20of%20the%20Three%20Phase%20Analysis.webm) |
+| **📊 Presentation** | 5-Slide Summary Deck | [Data_Analyst_Presentation_20251228_223319.pptx](./Data_Analyst_Presentation_20251228_223319.pptx) |
+
+### 📄 Sample Outputs
+
+See the `/Samples/` folder for PDF examples of each analysis mode:
+
+| Sample | Analysis Mode |
+|--------|---------------|
+| [Basic Data Analysis.pdf](./Samples/Basic%20Data%20Analysis.pdf) | 📊 Basic trends, WoW changes, anomalies |
+| [Deep Pattern Analysis.pdf](./Samples/Deep%20Pattern%20Analysis.pdf) | 🔬 Segment-level cross-dimensional insights |
+| [TwoPhase Analysis Basic and Deep Pattern Analysis.pdf](./Samples/TwoPhase%20Analysis%20Basic%20and%20Deep%20Pattern%20Analysis.pdf) | 🔄 Combined Two-Phase Analysis (Recommended) |
+
+---
+
 ## ✨ Features
 
 ### Core Analysis
@@ -88,16 +112,35 @@ streamlit run app.py
 
 ```
 Data Analyst Agent/
-├── app.py                 # Main Streamlit application
-├── prompts.json           # AI prompts configuration (3 modes)
-├── prompts.txt            # Human-readable prompt documentation
-├── requirements.txt       # Python dependencies
-├── README.md              # This file
-├── .gitignore            # Git ignore rules
-└── lib/
-    ├── coding_agent.py   # Core agent logic
-    ├── tools.py          # Tool implementations
-    ├── tools_schemas.py  # Tool schemas for function calling
+├── app.py                                    # Main Streamlit application
+├── prompts.json                              # AI prompts configuration (3 modes)
+├── Architecture.svg                          # System architecture diagram
+├── requirements.txt                          # Python dependencies
+├── README.md                                 # This file
+│
+├── 📹 Demo & Presentation/
+│   ├── Demo Video of the Three Phase Analysis.webm   # Local demo video
+│   └── Data_Analyst_Presentation_20251228_223319.pptx # 5-slide summary
+│
+├── 📄 Samples/                               # Sample PDF outputs
+│   ├── Basic Data Analysis.pdf
+│   ├── Deep Pattern Analysis.pdf
+│   └── TwoPhase Analysis Basic and Deep Pattern Analysis.pdf
+│
+├── 📚 Documentation/
+│   ├── DEMO_SCRIPT.md                        # Demo video script
+│   ├── PROJECT_OVERVIEW.md                   # Detailed project overview
+│   ├── QUICK_REFERENCE.md                    # Quick reference card
+│   └── CREATE_PRESENTATION.vba              # VBA code for PPT generation
+│
+├── .streamlit/                               # Streamlit configuration
+│   ├── config.toml
+│   └── secrets.toml.example
+│
+└── lib/                                      # Core library modules
+    ├── coding_agent.py                       # AI agent loop logic
+    ├── tools.py                              # Tool implementations
+    ├── tools_schemas.py                      # OpenAI function schemas
     └── ...
 ```
 
@@ -216,6 +259,21 @@ AI: "Based on the detected patterns, here are your priorities:
 7. **Visualize**: Charts with AI explanations
 8. **Recommend**: Actionable next steps
 
+## 📦 Submission Package
+
+This project includes all required deliverables:
+
+| Deliverable | File/Link | Status |
+|-------------|-----------|--------|
+| **1. Working Demo** | [🎥 Loom Video](https://www.loom.com/share/f8beea7a15a94da2a611ad4199c6ee94) | ✅ Complete |
+| **2. Local Demo Video** | [Demo Video of the Three Phase Analysis.webm](./Demo%20Video%20of%20the%20Three%20Phase%20Analysis.webm) | ✅ Complete |
+| **3. 5-Slide Summary Deck** | [Data_Analyst_Presentation_20251228_223319.pptx](./Data_Analyst_Presentation_20251228_223319.pptx) | ✅ Complete |
+| **4. README Documentation** | This file | ✅ Complete |
+| **5. Sample Outputs** | [/Samples/](./Samples/) folder with 3 PDF examples | ✅ Complete |
+| **6. GitHub Repository** | [github.com/dv0331/Ai-Data-Analyst](https://github.com/dv0331/Ai-Data-Analyst) | ✅ Complete |
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -229,3 +287,9 @@ MIT License - feel free to use this for your own projects.
 - Built with [Streamlit](https://streamlit.io/)
 - Powered by [OpenAI GPT-4](https://openai.com/)
 - Sandboxed by [E2B](https://e2b.dev/)
+
+---
+
+### 📧 Contact
+
+For questions about this project, please refer to the [Loom Demo](https://www.loom.com/share/f8beea7a15a94da2a611ad4199c6ee94) or review the [presentation slides](./Data_Analyst_Presentation_20251228_223319.pptx).
