@@ -1500,37 +1500,63 @@ def main() -> None:
                         None
                     )
                     
-                    # If still no pattern text, try to build one from other fields
-                    if not pattern_text:
-                        # Try to construct from segment/metric/change info
-                        segment = p.get("segment") or p.get("region") or p.get("category") or p.get("group") or ""
-                        metric = p.get("metric") or p.get("value") or ""
-                        change = p.get("metric_change") or p.get("change") or p.get("wow_change") or p.get("percent_change") or ""
-                        period = p.get("period") or p.get("week") or p.get("date") or ""
-                        channel = p.get("channel") or ""
-                        
-                        if segment or metric or change:
-                            parts = []
-                            if segment:
-                                parts.append(f"{segment}")
-                            if channel:
-                                parts.append(f"({channel})")
-                            if metric:
-                                parts.append(f": {metric}")
-                            if change:
-                                parts.append(f" [{change}% WoW]" if "%" not in str(change) else f" [{change} WoW]")
-                            if period:
-                                parts.append(f" on {period}")
-                            pattern_text = "".join(parts) if parts else None
+                    # Extract all possible fields for building a description
+                    segment = p.get("segment") or p.get("region") or p.get("category") or p.get("group") or ""
+                    metric = p.get("metric") or p.get("metric_name") or p.get("value") or ""
+                    change = p.get("metric_change") or p.get("change") or p.get("wow_change") or p.get("percent_change") or p.get("wow") or ""
+                    period = p.get("period") or p.get("week") or p.get("date") or ""
+                    channel = p.get("channel") or ""
+                    revenue = p.get("revenue") or p.get("amount") or p.get("total") or ""
                     
-                    # Last resort: stringify the entire dict
+                    # If no pattern text, build a comprehensive one from fields
                     if not pattern_text:
-                        # Remove common metadata keys and show remaining content
-                        display_dict = {k: v for k, v in p.items() if k not in ["severity", "priority", "type"]}
-                        if display_dict:
-                            pattern_text = ", ".join([f"{k}: {v}" for k, v in display_dict.items()])
+                        parts = []
+                        
+                        # Build segment identifier
+                        if segment and channel:
+                            parts.append(f"{segment} ({channel})")
+                        elif segment:
+                            parts.append(f"{segment}")
+                        elif channel:
+                            parts.append(f"{channel}")
+                        
+                        # Add metric/revenue info
+                        if revenue:
+                            try:
+                                rev_val = float(str(revenue).replace(",", "").replace("$", ""))
+                                parts.append(f"revenue ${rev_val:,.2f}")
+                            except:
+                                parts.append(f"revenue {revenue}")
+                        elif metric:
+                            parts.append(f"{metric}")
+                        
+                        # Add change info (most important!)
+                        if change:
+                            try:
+                                change_val = float(str(change).replace("%", "").replace("+", ""))
+                                direction = "increased" if change_val >= 0 else "decreased"
+                                parts.append(f"{direction} {abs(change_val):.1f}% WoW")
+                            except:
+                                parts.append(f"changed {change}")
+                        
+                        # Add period if available
+                        if period:
+                            parts.append(f"({period})")
+                        
+                        # Build final pattern text
+                        if parts:
+                            pattern_text = " ".join(parts)
                         else:
-                            pattern_text = str(p)
+                            # Fallback: show all non-empty dict values
+                            display_parts = []
+                            for k, v in p.items():
+                                if v and k not in ["severity", "priority", "type"] and str(v).strip():
+                                    display_parts.append(f"{k}: {v}")
+                            pattern_text = ", ".join(display_parts) if display_parts else str(p)
+                    
+                    # Ensure we have something meaningful
+                    if not pattern_text or pattern_text.strip() == "":
+                        pattern_text = str(p)
                     
                     # Extract change percentage from various possible keys
                     change_val = (
@@ -1539,6 +1565,7 @@ def main() -> None:
                         p.get("wow_change") or 
                         p.get("percent_change") or 
                         p.get("pct_change") or
+                        p.get("wow") or
                         ""
                     )
                     
@@ -1616,8 +1643,13 @@ def main() -> None:
                         anomaly.get("group") or 
                         anomaly.get("name") or
                         anomaly.get("dimension") or
-                        "Unknown"
+                        ""
                     )
+                    
+                    # Add channel if present
+                    channel = anomaly.get("channel") or ""
+                    if segment and channel:
+                        segment = f"{segment} ({channel})"
                     
                     # Try multiple possible keys for issue/description
                     issue = (
@@ -1631,20 +1663,56 @@ def main() -> None:
                         ""
                     )
                     
-                    # If still no issue text, try to build from metric info
+                    # Extract all numeric values for building description
+                    change = anomaly.get("change") or anomaly.get("metric_change") or anomaly.get("wow_change") or anomaly.get("wow") or ""
+                    metric = anomaly.get("metric") or anomaly.get("value") or anomaly.get("metric_name") or ""
+                    z_score = anomaly.get("z_score") or anomaly.get("zscore") or anomaly.get("z") or ""
+                    revenue = anomaly.get("revenue") or anomaly.get("amount") or anomaly.get("total") or ""
+                    
+                    # If no issue text, build a comprehensive one
                     if not issue:
-                        change = anomaly.get("change") or anomaly.get("metric_change") or anomaly.get("wow_change") or ""
-                        metric = anomaly.get("metric") or anomaly.get("value") or ""
-                        z_score = anomaly.get("z_score") or anomaly.get("zscore") or ""
-                        
                         parts = []
-                        if metric:
-                            parts.append(f"Metric: {metric}")
+                        
+                        # Add revenue/metric info
+                        if revenue:
+                            try:
+                                rev_val = float(str(revenue).replace(",", "").replace("$", ""))
+                                parts.append(f"Revenue ${rev_val:,.2f}")
+                            except:
+                                parts.append(f"Revenue {revenue}")
+                        elif metric:
+                            parts.append(f"{metric}")
+                        
+                        # Add change info
                         if change:
-                            parts.append(f"Change: {change}%" if "%" not in str(change) else f"Change: {change}")
+                            try:
+                                change_val = float(str(change).replace("%", "").replace("+", ""))
+                                direction = "increased" if change_val >= 0 else "dropped"
+                                parts.append(f"{direction} {abs(change_val):.1f}% WoW")
+                            except:
+                                parts.append(f"Changed {change}")
+                        
+                        # Add z-score
                         if z_score:
-                            parts.append(f"Z-score: {z_score}")
-                        issue = ", ".join(parts) if parts else "Anomaly detected"
+                            try:
+                                z_val = float(str(z_score))
+                                parts.append(f"(z-score: {z_val:.2f})")
+                            except:
+                                parts.append(f"(z-score: {z_score})")
+                        
+                        if parts:
+                            issue = " ".join(parts)
+                        else:
+                            # Fallback: show all non-empty values from dict
+                            display_parts = []
+                            for k, v in anomaly.items():
+                                if v and k not in ["segment", "region", "category", "channel", "severity", "priority", "type"] and str(v).strip():
+                                    display_parts.append(f"{k}: {v}")
+                            issue = ", ".join(display_parts) if display_parts else "Anomaly detected"
+                    
+                    # Default segment if missing
+                    if not segment:
+                        segment = "Segment"
                     
                     # Try multiple possible keys for gap/impact
                     gap = (
@@ -1652,10 +1720,9 @@ def main() -> None:
                         anomaly.get("impact") or 
                         anomaly.get("severity") or 
                         anomaly.get("magnitude") or
-                        anomaly.get("z_score") or
-                        anomaly.get("change") or
                         ""
                     )
+                    # Don't use z_score or change as gap - those are shown in issue
                     
                     rec = anomaly.get("recommendation") or anomaly.get("action") or anomaly.get("suggestion") or ""
                     
