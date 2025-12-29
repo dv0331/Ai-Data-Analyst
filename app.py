@@ -1485,15 +1485,69 @@ def main() -> None:
         if detected_patterns:
             st.markdown("#### 🔍 Detected Patterns")
             
-            # Helper to extract pattern info (handles both dict and string formats)
+            # Helper to extract pattern info (handles multiple dict formats and strings)
             def extract_pattern_info(p):
                 if isinstance(p, dict):
+                    # Try multiple possible keys for the pattern text
+                    pattern_text = (
+                        p.get("pattern") or 
+                        p.get("description") or 
+                        p.get("text") or 
+                        p.get("message") or 
+                        p.get("finding") or
+                        p.get("insight") or
+                        p.get("detail") or
+                        None
+                    )
+                    
+                    # If still no pattern text, try to build one from other fields
+                    if not pattern_text:
+                        # Try to construct from segment/metric/change info
+                        segment = p.get("segment") or p.get("region") or p.get("category") or p.get("group") or ""
+                        metric = p.get("metric") or p.get("value") or ""
+                        change = p.get("metric_change") or p.get("change") or p.get("wow_change") or p.get("percent_change") or ""
+                        period = p.get("period") or p.get("week") or p.get("date") or ""
+                        channel = p.get("channel") or ""
+                        
+                        if segment or metric or change:
+                            parts = []
+                            if segment:
+                                parts.append(f"{segment}")
+                            if channel:
+                                parts.append(f"({channel})")
+                            if metric:
+                                parts.append(f": {metric}")
+                            if change:
+                                parts.append(f" [{change}% WoW]" if "%" not in str(change) else f" [{change} WoW]")
+                            if period:
+                                parts.append(f" on {period}")
+                            pattern_text = "".join(parts) if parts else None
+                    
+                    # Last resort: stringify the entire dict
+                    if not pattern_text:
+                        # Remove common metadata keys and show remaining content
+                        display_dict = {k: v for k, v in p.items() if k not in ["severity", "priority", "type"]}
+                        if display_dict:
+                            pattern_text = ", ".join([f"{k}: {v}" for k, v in display_dict.items()])
+                        else:
+                            pattern_text = str(p)
+                    
+                    # Extract change percentage from various possible keys
+                    change_val = (
+                        p.get("metric_change") or 
+                        p.get("change") or 
+                        p.get("wow_change") or 
+                        p.get("percent_change") or 
+                        p.get("pct_change") or
+                        ""
+                    )
+                    
                     return {
                         "severity": p.get("severity", "medium"),
-                        "pattern": p.get("pattern", "Unknown pattern"),
-                        "period": p.get("period", ""),
-                        "change": p.get("metric_change", ""),
-                        "rec": p.get("recommendation", "")
+                        "pattern": pattern_text,
+                        "period": p.get("period") or p.get("week") or p.get("date") or "",
+                        "change": change_val,
+                        "rec": p.get("recommendation") or p.get("action") or p.get("suggestion") or ""
                     }
                 else:
                     # Handle string format - try to extract % change for sorting
@@ -1551,30 +1605,79 @@ def main() -> None:
             top_anomalies = segment_anomalies[:5]
             remaining_anomalies = segment_anomalies[5:]
             
-            for anomaly in top_anomalies:
+            def extract_anomaly_info(anomaly):
+                """Extract anomaly info from various dict formats or strings."""
                 if isinstance(anomaly, dict):
-                    segment = anomaly.get("segment", "Unknown")
-                    issue = anomaly.get("issue", "")
-                    gap = anomaly.get("gap", "")
-                    rec = anomaly.get("recommendation", "")
-                    st.warning(f"**{segment}**: {issue} ({gap})")
-                    if rec:
-                        st.caption(f"💡 Recommendation: {rec}")
+                    # Try multiple possible keys for segment
+                    segment = (
+                        anomaly.get("segment") or 
+                        anomaly.get("region") or 
+                        anomaly.get("category") or 
+                        anomaly.get("group") or 
+                        anomaly.get("name") or
+                        anomaly.get("dimension") or
+                        "Unknown"
+                    )
+                    
+                    # Try multiple possible keys for issue/description
+                    issue = (
+                        anomaly.get("issue") or 
+                        anomaly.get("description") or 
+                        anomaly.get("anomaly") or 
+                        anomaly.get("finding") or
+                        anomaly.get("pattern") or
+                        anomaly.get("text") or
+                        anomaly.get("message") or
+                        ""
+                    )
+                    
+                    # If still no issue text, try to build from metric info
+                    if not issue:
+                        change = anomaly.get("change") or anomaly.get("metric_change") or anomaly.get("wow_change") or ""
+                        metric = anomaly.get("metric") or anomaly.get("value") or ""
+                        z_score = anomaly.get("z_score") or anomaly.get("zscore") or ""
+                        
+                        parts = []
+                        if metric:
+                            parts.append(f"Metric: {metric}")
+                        if change:
+                            parts.append(f"Change: {change}%" if "%" not in str(change) else f"Change: {change}")
+                        if z_score:
+                            parts.append(f"Z-score: {z_score}")
+                        issue = ", ".join(parts) if parts else "Anomaly detected"
+                    
+                    # Try multiple possible keys for gap/impact
+                    gap = (
+                        anomaly.get("gap") or 
+                        anomaly.get("impact") or 
+                        anomaly.get("severity") or 
+                        anomaly.get("magnitude") or
+                        anomaly.get("z_score") or
+                        anomaly.get("change") or
+                        ""
+                    )
+                    
+                    rec = anomaly.get("recommendation") or anomaly.get("action") or anomaly.get("suggestion") or ""
+                    
+                    return segment, issue, gap, rec
                 else:
-                    # Handle string format
-                    st.warning(f"⚠️ {anomaly}")
+                    # String format
+                    return "Anomaly", str(anomaly), "", ""
+            
+            for anomaly in top_anomalies:
+                segment, issue, gap, rec = extract_anomaly_info(anomaly)
+                gap_text = f" ({gap})" if gap else ""
+                st.warning(f"**{segment}**: {issue}{gap_text}")
+                if rec:
+                    st.caption(f"💡 Recommendation: {rec}")
             
             # Show remaining anomalies in expander if any
             if remaining_anomalies:
                 with st.expander(f"📋 Show {len(remaining_anomalies)} more anomalies...", expanded=False):
                     for anomaly in remaining_anomalies:
-                        if isinstance(anomaly, dict):
-                            segment = anomaly.get("segment", "Unknown")
-                            issue = anomaly.get("issue", "")
-                            gap = anomaly.get("gap", "")
-                            st.caption(f"⚠️ **{segment}**: {issue} ({gap})")
-                        else:
-                            st.caption(f"⚠️ {anomaly}")
+                        segment, issue, gap, rec = extract_anomaly_info(anomaly)
+                        gap_text = f" ({gap})" if gap else ""
+                        st.caption(f"⚠️ **{segment}**: {issue}{gap_text}")
 
         # Standard insights
         st.subheader("📋 Key Insights")
